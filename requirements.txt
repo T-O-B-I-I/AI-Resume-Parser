@@ -1,0 +1,6 @@
+Flask
+pdfplumber
+PyMuPDF
+requests
+pymongo
+python-dotenv
