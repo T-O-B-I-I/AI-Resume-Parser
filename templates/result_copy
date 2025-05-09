@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parsed Resume Data</title>
+</head>
+<body>
+    <h1>Parsed Resume Data</h1>
+    <pre>{{ parsed_result | tojson(indent=2) }}</pre>
+    <a href="/">Go back to upload another resume</a>
+</body>
+</html>

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parsed Resume Data</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 text-gray-800">
+    <div class="max-w-3xl mx-auto p-6 mt-10 bg-white rounded-xl shadow-lg">
+        <h1 class="text-3xl font-bold mb-6 text-center text-blue-600">Parsed Resume</h1>
+
+        <div class="mb-4">
+            <p><span class="font-semibold">Full Name:</span> {{ parsed_result.get('Full Name', 'Not available') }}</p>
+            <p><span class="font-semibold">Email:</span> {{ parsed_result.get('Contact Info', {}).get('Email', 'Not available') }}</p>
+            <p><span class="font-semibold">Phone:</span> {{ parsed_result.get('Contact Info', {}).get('Phone', 'Not available') }}</p>
+            <p><span class="font-semibold">LinkedIn:</span> {{ parsed_result.get('Contact Info', {}).get('LinkedIn', 'Not available') }}</p>
+            <p><span class="font-semibold">GitHub:</span> {{ parsed_result.get('Contact Info', {}).get('GitHub', 'Not available') }}</p>
+            <p><span class="font-semibold">Personal Website:</span> {{ parsed_result.get('Contact Info', {}).get('Personal Website', 'Not available') }}</p>
+        </div>
+
+        <div class="mb-4">
+            <h2 class="text-xl font-semibold text-gray-700 mb-2">Skills</h2>
+            <p>
+                {% if parsed_result.get('Skills') %}
+                    <strong>Technical Skills:</strong> {{ parsed_result.Skills['Technical Skills'] | join(', ') }}<br>
+                    <strong>Personal Skills:</strong> {{ parsed_result.Skills['Personal Skills'] | join(', ') }}<br>
+                    <strong>Languages:</strong> {{ parsed_result.Skills['Languages'] | join(', ') }}
+                {% else %}
+                    Not available
+                {% endif %}
+            </p>
+        </div>
+
+        <div class="mb-4">
+            <h2 class="text-xl font-semibold text-gray-700 mb-2">Education</h2>
+            <ul class="list-disc list-inside">
+                {% for edu in parsed_result.get('Education', []) %}
+                    <li>
+                        <strong>{{ edu.get('Degree', 'Unknown Degree') }}</strong><br>
+                        <span class="italic">{{ edu.get('Field of Study', 'Unknown Field') }}</span><br>
+                        {{ edu.get('University', 'Unknown University') }} ({{ edu.get('Duration', 'N/A') }})
+                    </li>
+                {% else %}
+                    <li>No education data found.</li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div class="mb-4">
+            <h2 class="text-xl font-semibold text-gray-700 mb-2">Work Experience</h2>
+            <ul class="list-disc list-inside">
+                {% for exp in parsed_result.get('Work Experience', []) %}
+                    <li><span class="font-medium">{{ exp.get('Role', 'Unknown Role') }}</span> at <span class="italic">{{ exp.get('Company', 'Unknown Company') }}</span> ({{ exp.get('Duration', 'N/A') }})</li>
+                {% else %}
+                    <li>No work experience data found.</li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div class="mb-4">
+            <h2 class="text-xl font-semibold text-gray-700 mb-2">Certifications</h2>
+            <ul class="list-disc list-inside">
+                {% set certifications = parsed_result.get('Certifications') %}
+                {% if certifications is not none and certifications is iterable and certifications|length %}
+                    {% for cert in certifications %}
+                        <li>{{ cert }}</li>
+                    {% endfor %}
+                {% else %}
+                    <li>No certifications found.</li>
+                {% endif %}
+            </ul>
+        </div>
+        
+
+        <div class="text-center mt-6">
+            <a href="/" class="inline-block bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded">Upload Another Resume</a>
+        </div>
+    </div>
+</body>
+</html>

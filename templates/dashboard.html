@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 text-gray-800">
+    <div class="max-w-5xl mx-auto p-6 mt-10 bg-white rounded-xl shadow-lg"> <!-- Changed max-w-3xl to max-w-5xl -->
+        <h1 class="text-3xl font-bold mb-6 text-center text-blue-600">Admin Dashboard</h1>
+
+        <!-- Dashboard content -->
+        <div class="mb-6">
+            <h2 class="text-xl font-semibold text-gray-700">Manage Resumes</h2>
+            <!-- Make the table container scrollable horizontally -->
+            <div class="overflow-x-auto">
+                <table class="min-w-full bg-white shadow-md rounded-lg">
+                    <thead>
+                        <tr>
+                            <th class="py-2 px-4 border-b">Resume ID</th>
+                            <th class="py-2 px-4 border-b">Full Name</th>
+                            <th class="py-2 px-4 border-b">Email</th>
+                            <th class="py-2 px-4 border-b">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Loop through resumes and display -->
+                        {% for resume in resumes %}
+                        <tr>
+                            <td class="py-2 px-4 border-b">{{ resume._id }}</td>
+                            <td class="py-2 px-4 border-b">{{ resume.get('Full Name', 'N/A') }}</td>
+                            <td class="py-2 px-4 border-b">{{ resume.get('Contact Info', {}).get('Email', 'N/A') }}</td>
+                            <td class="py-2 px-4 border-b flex space-x-4">
+                                <!-- View button as a box -->
+                                <a href="{{ url_for('view_resume', resume_id=resume._id) }}" 
+                                   class="inline-block text-blue-600 border border-blue-600 hover:bg-blue-600 hover:text-white font-semibold py-2 px-4 rounded transition-colors">
+                                   View
+                                </a>
+                                <!-- Delete button as a box -->
+                                <form action="{{ url_for('delete_resume', resume_id=resume._id) }}" method="POST" class="inline-block">
+                                    <button type="submit" 
+                                            class="inline-block text-red-600 border border-red-600 hover:bg-red-600 hover:text-white font-semibold py-2 px-4 rounded transition-colors">
+                                            Delete
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Logout button -->
+        <div class="text-center mt-6">
+            <a href="{{ url_for('logout') }}" 
+               class="inline-block bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded transition-colors">
+               Logout
+            </a>
+        </div>
+
+        <!-- Flash messages (if any) -->
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <ul class="mt-4">
+                    {% for message in messages %}
+                        <li class="text-green-500">{{ message }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+    </div>
+</body>
+</html>
