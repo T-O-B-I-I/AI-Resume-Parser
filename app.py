@@ -7,40 +7,39 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 from bson.objectid import ObjectId
 from pymongo import MongoClient
 from dotenv import load_dotenv
-import pprint
+from werkzeug.utils import secure_filename  # ✅ Add this import
 
 # Load environment variables from .env file
 load_dotenv()
 
 # Initialize Flask app
 app = Flask(__name__)
-app.secret_key = os.urandom(24)  # Secure session key
+app.secret_key = os.urandom(24)
 
-# Groq API Key and URL
+# Groq API
 API_KEY = os.getenv("GROQ_API_KEY")
 URL = "https://api.groq.com/openai/v1/chat/completions"
 
-# MongoDB connection
+# MongoDB
 MONGO_URI = os.getenv("MONGO_URI")
 print(f"Connecting to MongoDB at {MONGO_URI}")
 client = MongoClient(MONGO_URI)
 db = client["ats_db"]
 collection = db["resumes"]
 
-# Admin credentials from environment variables
+# Admin credentials
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "password")
 
-# Groq API headers
+# Groq headers
 headers = {
     "Authorization": f"Bearer {API_KEY}",
     "Content-Type": "application/json"
 }
 
-# Resume parsing model
-MODEL = "llama-3.3-70b-versatile"  # Replace with your actual model name
+# Model
+MODEL = "llama-3.3-70b-versatile"
 
-# Function to extract text from PDF using pdfplumber
 def extract_text_from_pdf(pdf_path):
     text = ""
     try:
@@ -49,14 +48,11 @@ def extract_text_from_pdf(pdf_path):
                 page_text = page.extract_text()
                 if page_text:
                     text += page_text
-                else:
-                    print(f"Warning: No text found on page {page.page_number}")
     except Exception as e:
         print(f"Error with pdfplumber: {e}")
-        text = extract_text_with_pymupdf(pdf_path)  # Fallback to PyMuPDF
+        text = extract_text_with_pymupdf(pdf_path)
     return text
 
-# Fallback function: extract text from PDF using PyMuPDF
 def extract_text_with_pymupdf(pdf_path):
     text = ""
     try:
@@ -68,36 +64,33 @@ def extract_text_with_pymupdf(pdf_path):
         print(f"Error with PyMuPDF: {e}")
     return text
 
-# Function to parse resume with Groq API
 def parse_resume(text):
     system_prompt = "You are an expert resume parser. Extract structured data from resumes."
+    user_prompt = f"""Here is a resume:
 
-    user_prompt = f"""
-    Here is a resume:
+{text}
 
-    {text}
+Extract the following:
+- Full Name
+- Contact Info:
+    - Email
+    - Phone
+    - LinkedIn
+    - GitHub
+    - Personal Website
+- Skills:
+    - Technical Skills
+    - Personal Skills
+    - Programming Languages
+    - Database
+    - Tools
+    - Languages
+- Education (Degree, Field of Study, University, Duration)
+- Work Experience (Company, Role, Duration)
+- Certifications (if any)
 
-    Extract the following:
-    - Full Name
-    - Contact Info:
-        - Email
-        - Phone
-        - LinkedIn (if available link to it)
-        - GitHub (if available link to it)
-        - Personal Website (if available link to it)
-    - Skills:
-        - Technical Skills
-        - Personal Skills
-        - Programming Languages
-        - Database
-        - Tools
-        - Languages
-    - Education (Degree, Field of Study, University, Duration)
-    - Work Experience (Company, Role, Duration)
-    - Certifications (if any)
-
-    Return the result in JSON format.
-    """
+Return the result in JSON format.
+"""
 
     data = {
         "model": MODEL,
@@ -111,115 +104,72 @@ def parse_resume(text):
 
     try:
         response = requests.post(URL, headers=headers, json=data)
-        response.raise_for_status()  # Raise an error for bad responses
-
-        # Print the raw response for debugging
+        response.raise_for_status()
         print("API Response:", response.text)
-
-        # Check if response is valid JSON
-        if not response.text.strip():
-            return "❌ Error: Empty response from API"
-
-        # Extract the JSON content from the response
         response_json = response.json()
-
-        # Print the JSON response to check its structure
-        print("Parsed JSON:", response_json)
-
-        # Access the parsed data inside the 'choices' key
         parsed_data = response_json.get('choices', [{}])[0].get('message', {}).get('content', '')
 
-        # Check if parsed_data contains the expected JSON block
         if parsed_data:
-            # Look for the JSON part within the response
             try:
                 start_index = parsed_data.find('```json') + len('```json')
                 end_index = parsed_data.find('```', start_index)
                 json_data_str = parsed_data[start_index:end_index].strip()
-
                 if json_data_str:
-                    # Parse the cleaned-up JSON string
-                    parsed_json = json.loads(json_data_str)
-                    return parsed_json
+                    return json.loads(json_data_str)
                 else:
                     return "❌ Error: No valid JSON block found in the response."
-
             except (json.JSONDecodeError, ValueError) as e:
                 return f"❌ Error: Failed to parse JSON from API response: {e}"
-
         else:
             return "❌ Error: No parsed data found in response"
-
     except requests.exceptions.RequestException as e:
         return f"❌ Error: {e}"
-
     except json.decoder.JSONDecodeError as e:
         return f"❌ Error: Invalid JSON response"
 
 def sanitize_result(data):
-    # Make sure all expected iterable fields exist
     data = data or {}
-    data['education'] = data.get('Education', [])  # Note the correct key is 'Education' from the API response
+    data['education'] = data.get('Education', [])
     data['workExperience'] = data.get('Work Experience', [])
     data['certifications'] = data.get('Certifications', [])
-
-    # Contact Info and Skills defaults
     data['Contact Info'] = data.get('Contact Info', {})
     data['Skills'] = data.get('Skills', {})
-
     return data
-
 
 @app.route('/result', methods=['POST'])
 def result():
     file = request.files.get('resume')
     if not file or file.filename == '':
         return render_template('result.html', parsed_result="No resume uploaded.")
-
-    parsed_result = get_parsed_result(file)  # <-- This must return a dict
+    parsed_result = get_parsed_result(file)
     parsed_result = sanitize_result(parsed_result)
-
     return render_template('result.html', parsed_result=parsed_result)
 
-
-    
-
-# Route for admin login
 @app.route("/admin", methods=["GET", "POST"])
 def admin_login():
     if request.method == "POST":
         username = request.form["username"]
         password = request.form["password"]
-
-        # Validate admin credentials
         if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
-            session["logged_in"] = True  # Correct session key here
+            session["logged_in"] = True
             return redirect(url_for("dashboard"))
         else:
             return "Invalid credentials, please try again.", 401
-
     return render_template("admin_login.html")
 
-# Route for admin logout
 @app.route("/logout", methods=["GET", "POST"])
 def logout():
-    # Remove the admin session to log out
-    session.pop("logged_in", None)  # Use the correct session key
-    flash("You have been logged out.")  # Flash message (string)
-    return redirect(url_for("admin_login"))  # Redirect to the login page after logout
+    session.pop("logged_in", None)
+    flash("You have been logged out.")
+    return redirect(url_for("admin_login"))
 
-
-# Dashboard route for viewing all resumes
 @app.route("/resumes")
 def dashboard():
     if not session.get("logged_in"):
-        return redirect(url_for("admin_login"))  # If not logged in, redirect to login page
-
-    # Fetch all resumes from MongoDB
+        return redirect(url_for("admin_login"))
     resumes = list(collection.find())
     return render_template("dashboard.html", resumes=resumes)
 
-# Dashboard route for deleting resumes
 @app.route("/delete/<resume_id>", methods=["POST"])
 def delete_resume(resume_id):
     try:
@@ -229,20 +179,17 @@ def delete_resume(resume_id):
         flash(f"❌ Error deleting resume: {e}")
     return redirect(url_for("dashboard"))
 
-# Route for viewing a specific resume
 @app.route("/resumes/<resume_id>")
 def view_resume(resume_id):
     try:
         resume = collection.find_one({"_id": ObjectId(resume_id)})
         if not resume:
             return "Resume not found", 404
-        sanitized_resume = sanitize_result(resume)  # 💡 sanitize before rendering
+        sanitized_resume = sanitize_result(resume)
         return render_template("result.html", parsed_result=sanitized_resume)
     except Exception as e:
         return f"Error: {e}", 500    
 
-
-# Route for uploading resume and getting parsed result 
 @app.route("/", methods=["GET", "POST"])
 def index():
     if request.method == "POST":
@@ -251,38 +198,32 @@ def index():
         file = request.files["file"]
         if file.filename == "":
             return "No selected file", 400
-
-        # Validate file type (PDF only)
         if not file.filename.lower().endswith(".pdf"):
             return "Invalid file type. Please upload a PDF file.", 400
-        
-        # Save the file to the uploads folder
-        file_path = os.path.join("uploads", file.filename)
+
+        # ✅ Ensure uploads folder exists
+        os.makedirs("uploads", exist_ok=True)
+
+        # ✅ Sanitize filename to prevent issues with special characters
+        safe_filename = secure_filename(file.filename)
+        file_path = os.path.join("uploads", safe_filename)
         file.save(file_path)
 
-        # Extract text from the uploaded resume
         resume_text = extract_text_from_pdf(file_path)
-
         if resume_text.strip() == "":
             return "Failed to extract text from the resume.", 400
         else:
-            # Send resume text to Groq for parsing
             parsed_result = parse_resume(resume_text)
             if isinstance(parsed_result, dict):
-                # Save parsed data to MongoDB
                 try:
                     collection.insert_one(parsed_result)
                 except Exception as e:
                     print(f"⚠️ Failed to save to MongoDB: {e}")
                 return render_template("result.html", parsed_result=parsed_result)
-
             else:
-                return render_template("result.html", parsed_result=parsed_result)  # Display the error message
-
+                return render_template("result.html", parsed_result=parsed_result)
     return render_template("index.html")
 
 if __name__ == "__main__":
-    # Ensure the uploads directory exists
     os.makedirs("uploads", exist_ok=True)
     app.run(debug=True)
-
