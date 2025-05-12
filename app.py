@@ -149,5 +149,5 @@ if __name__ == "__main__":
     # Ensure the uploads directory exists
     os.makedirs("uploads", exist_ok=True)
     # Run the app using Gunicorn (for production)
-    #app.run(debug=True)  # or use Gunicorn for deployment in production
+    app.run(debug=True)  # or use Gunicorn for deployment in production
     pass
