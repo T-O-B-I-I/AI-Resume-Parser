@@ -2,80 +2,107 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Parsed Resume Data</title>
+    <title>Parsed Resume Result</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 text-gray-800">
-    <div class="max-w-3xl mx-auto p-6 mt-10 bg-white rounded-xl shadow-lg">
-        <h1 class="text-3xl font-bold mb-6 text-center text-blue-600">Parsed Resume</h1>
 
-        <div class="mb-4">
-            <p><span class="font-semibold">Full Name:</span> {{ parsed_result.get('Full Name', 'Not available') }}</p>
-            <p><span class="font-semibold">Email:</span> {{ parsed_result.get('Contact Info', {}).get('Email', 'Not available') }}</p>
-            <p><span class="font-semibold">Phone:</span> {{ parsed_result.get('Contact Info', {}).get('Phone', 'Not available') }}</p>
-            <p><span class="font-semibold">LinkedIn:</span> {{ parsed_result.get('Contact Info', {}).get('LinkedIn', 'Not available') }}</p>
-            <p><span class="font-semibold">GitHub:</span> {{ parsed_result.get('Contact Info', {}).get('GitHub', 'Not available') }}</p>
-            <p><span class="font-semibold">Personal Website:</span> {{ parsed_result.get('Contact Info', {}).get('Personal Website', 'Not available') }}</p>
-        </div>
+    <div class="max-w-3xl mx-auto py-10">
+        <h1 class="text-3xl font-bold text-center mb-6">Parsed Resume Data</h1>
 
-        <div class="mb-4">
-            <h2 class="text-xl font-semibold text-gray-700 mb-2">Skills</h2>
-            <p>
-                {% if parsed_result.get('Skills') %}
-                    <strong>Technical Skills:</strong> {{ parsed_result.Skills['Technical Skills'] | join(', ') }}<br>
-                    <strong>Personal Skills:</strong> {{ parsed_result.Skills['Personal Skills'] | join(', ') }}<br>
-                    <strong>Languages:</strong> {{ parsed_result.Skills['Languages'] | join(', ') }}
-                {% else %}
-                    Not available
-                {% endif %}
-            </p>
-        </div>
+        {% if parsed_result is string %}
+            <div class="bg-red-100 text-red-800 px-4 py-3 rounded mb-6">
+                <p>{{ parsed_result }}</p>
+            </div>
+        {% elif parsed_result %}
+            <div class="bg-white shadow p-6 rounded-lg space-y-6">
+                
+                <div>
+                    <h2 class="font-semibold text-xl">Full Name:</h2>
+                    <p>{{ parsed_result.get('Full Name', 'Not available') }}</p>
+                </div>
 
-        <div class="mb-4">
-            <h2 class="text-xl font-semibold text-gray-700 mb-2">Education</h2>
-            <ul class="list-disc list-inside">
-                {% for edu in parsed_result.get('Education', []) %}
-                    <li>
-                        <strong>{{ edu.get('Degree', 'Unknown Degree') }}</strong><br>
-                        <span class="italic">{{ edu.get('Field of Study', 'Unknown Field') }}</span><br>
-                        {{ edu.get('University', 'Unknown University') }} ({{ edu.get('Duration', 'N/A') }})
-                    </li>
-                {% else %}
-                    <li>No education data found.</li>
-                {% endfor %}
-            </ul>
-        </div>
+                <div>
+                    <h2 class="font-semibold text-xl">Contact Info:</h2>
+                    <ul class="list-disc ml-6">
+                        {% set contact = parsed_result.get('Contact Info') or {} %}
+                        <li>Email: {{ contact.get('Email', 'Not available') }}</li>
+                        <li>Phone: {{ contact.get('Phone', 'Not available') }}</li>
+                        <li>LinkedIn: {{ contact.get('LinkedIn', 'Not available') }}</li>
+                        <li>GitHub: {{ contact.get('GitHub', 'Not available') }}</li>
+                        <li>Personal Website: {{ contact.get('Personal Website', 'Not available') }}</li>
+                    </ul>
+                </div>
 
-        <div class="mb-4">
-            <h2 class="text-xl font-semibold text-gray-700 mb-2">Work Experience</h2>
-            <ul class="list-disc list-inside">
-                {% for exp in parsed_result.get('Work Experience', []) %}
-                    <li><span class="font-medium">{{ exp.get('Role', 'Unknown Role') }}</span> at <span class="italic">{{ exp.get('Company', 'Unknown Company') }}</span> ({{ exp.get('Duration', 'N/A') }})</li>
-                {% else %}
-                    <li>No work experience data found.</li>
-                {% endfor %}
-            </ul>
-        </div>
+                <div>
+                    <h2 class="font-semibold text-xl">Skills:</h2>
+                    {% set skills = parsed_result.get('Skills') or {} %}
+                    <ul class="list-disc ml-6">
+                        <li>Technical Skills: {% if skills.get('Technical Skills') %}{{ skills.get('Technical Skills') | join(', ') }}{% else %}Not available{% endif %}</li>
+                        <li>Personal Skills: {% if skills.get('Personal Skills') %}{{ skills.get('Personal Skills') | join(', ') }}{% else %}Not available{% endif %}</li>
+                        <li>Languages: {% if skills.get('Programming Languages') %}{{ skills.get('Programming Languages') | join(', ') }}{% else %}Not available{% endif %}</li>
+                        <li>Database: {% if skills.get('Database') %}{{ skills.get('Database') | join(', ') }}{% else %}Not available{% endif %}</li>
+                        <li>Tools: {% if skills.get('Tools') %}{{ skills.get('Tools') | join(', ') }}{% else %}Not available{% endif %}</li>
+                        <li>Languages Known: {% if skills.get('Languages') %}{{ skills.get('Languages') | join(', ') }}{% else %}Not available{% endif %}</li>
+                    </ul>
+                </div>
 
-        <div class="mb-4">
-            <h2 class="text-xl font-semibold text-gray-700 mb-2">Certifications</h2>
-            <ul class="list-disc list-inside">
-                {% set certifications = parsed_result.get('Certifications') %}
-                {% if certifications is not none and certifications is iterable and certifications|length %}
-                    {% for cert in certifications %}
-                        <li>{{ cert }}</li>
-                    {% endfor %}
-                {% else %}
-                    <li>No certifications found.</li>
-                {% endif %}
-            </ul>
-        </div>
-        
+                <div>
+                    <h2 class="font-semibold text-xl">Education:</h2>
+                    <ul class="list-disc ml-6">
+                        {% set education_list = parsed_result.get('Education') or [] %}
+                        {% if education_list %}
+                            {% for edu in education_list %}
+                                <li>
+                                    {{ edu.get('Degree', 'Unknown Degree') }} - {{ edu.get('University', 'Unknown Institution') }},
+                                    {{ edu.get('CGPA', 'N/A') }},
+                                    {{ edu.get('Duration', 'N/A') }}
+                                </li>
+                            {% endfor %}
+                        {% else %}
+                            <li>No education data found.</li>
+                        {% endif %}
+                    </ul>
+                </div>
 
-        <div class="text-center mt-6">
-            <a href="/" class="inline-block bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded">Upload Another Resume</a>
+                <div>
+                    <h2 class="font-semibold text-xl">Work Experience:</h2>
+                    <ul class="list-disc ml-6">
+                        {% set work_list = parsed_result.get('Work Experience') or [] %}
+                        {% if work_list %}
+                            {% for job in work_list %}
+                                <li>{{ job.get('Role', 'Unknown Role') }} at {{ job.get('Company', 'Unknown Company') }} ({{ job.get('Duration', 'N/A') }})</li>
+                            {% endfor %}
+                        {% else %}
+                            <li>No work experience data found.</li>
+                        {% endif %}
+                    </ul>
+                </div>
+
+                <div>
+                    <h2 class="font-semibold text-xl">Certifications:</h2>
+                    <ul class="list-disc ml-6">
+                        {% set cert_list = parsed_result.get('Certifications') or [] %}
+                        {% if cert_list %}
+                            {% for cert in cert_list %}
+                                <li>{{ cert.get('Name', 'N/A') }} ({{ cert.get('Year', 'N/A') }}) - {{ cert.get('Provider', 'N/A') }}</li>
+                            {% endfor %}
+                        {% else %}
+                            <li>No certifications found.</li>
+                        {% endif %}
+                    </ul>
+                </div>
+
+
+            </div>
+        {% else %}
+            <p>No data available to show.</p>
+        {% endif %}
+
+        <div class="mt-6 text-center">
+            <a href="/" class="text-blue-600 underline">Upload another resume</a>
         </div>
     </div>
+
 </body>
 </html>
