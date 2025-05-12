@@ -4,3 +4,4 @@ PyMuPDF
 requests
 pymongo
 python-dotenv
+gunicorn
